@@ -18,6 +18,10 @@ public class start {
 	
 	public static void main(String args[]) {
 		if(init()) {
+			VolatileBag.deviceList.put("TEST-PHONE", new Device("TEST-PHONE", 0));
+			VolatileBag.deviceList.put("TEST-TV", new Device("TEST-TV", 1));
+			VolatileBag.deviceList.put("TEST-WEAR", new Device("TEST-WEAR", 2));
+			VolatileBag.deviceList.put("TEST-LAPTOP", new Device("TEST-LAPTOP", 3));
 			new mainFrame();
 		}
 	}
@@ -38,7 +42,7 @@ public class start {
 		
 		File data = new File("C:/ProgramData/RemoteConnectivity/Settings.dat");
 		if(!data.exists()) {
-			System.out.println("Creating new Data file");
+			log(Level.INFO, "init: Creating new Data file");
 			new File("C:/ProgramData/RemoteConnectivity").mkdir();
 			try {
 				ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(data));
@@ -50,7 +54,7 @@ public class start {
 				return false;
 			}
 		} else {
-			System.out.println("Reading new Data file");
+			log(Level.INFO, "init: Reading Data file");
 			try {
 				ObjectInputStream ois = new ObjectInputStream(new FileInputStream(data));
 				Data temp = (Data) ois.readObject();
