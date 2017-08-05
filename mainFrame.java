@@ -20,19 +20,21 @@ import java.util.logging.Level;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JTextField;
 import javax.swing.border.EtchedBorder;
+import javax.swing.text.PlainDocument;
 
 public class MainFrame {
 	public static JFrame baseFrame;
-	static JFrame settingsFrame;
 	static JLabel switchLabel;
 	static JLabel statusLabel;
-	static 	JPanel container;
+	static JPanel container;
 	static JScrollPane scroll;
 	static Font heading;
 	static JPanel centerPanel;
@@ -52,7 +54,7 @@ public class MainFrame {
 				if (JOptionPane.showConfirmDialog(baseFrame, "Do you want to stop server and exit application.?",
 						"Sure to Exit?", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
 					baseFrame.dispose();
-					if(switchLabel.getText().equals("  ON")) {
+					if (switchLabel.getText().equals("  ON")) {
 						finishUp();
 					}
 				}
@@ -124,10 +126,10 @@ public class MainFrame {
 		scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 		scroll.setPreferredSize(new Dimension(380, 300));
 		scroll.setBorder(BorderFactory.createEtchedBorder(EtchedBorder.RAISED, Color.BLACK, Color.gray));
-		
+
 		container = new JPanel(new FlowLayout(FlowLayout.CENTER));
 		container.setPreferredSize(new Dimension(345, 350));
-		
+
 		gbc.gridx = 0;
 		gbc.gridy = 1;
 		gbc.gridwidth = 2;
@@ -181,7 +183,7 @@ public class MainFrame {
 				if (JOptionPane.showConfirmDialog(baseFrame, "Do you want to stop server and exit application.?",
 						"Sure to Exit?", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
 					baseFrame.dispose();
-					if(switchLabel.getText().equals("  ON")) {
+					if (switchLabel.getText().equals("  ON")) {
 						finishUp();
 					}
 				}
@@ -200,13 +202,38 @@ public class MainFrame {
 	}
 
 	private void openSettings() {
-		System.out.println("Open Settings.");
+		boolean changed = false;
+		JDialog settingsDialog = new JDialog(baseFrame, "Settings - Remote Connectivity", true);
+		settingsDialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+		settingsDialog.setSize(400, 600);
+		settingsDialog.setLocationRelativeTo(baseFrame);
+
+		JPanel container = new JPanel(new GridBagLayout());
+		GridBagConstraints gbc = new GridBagConstraints();
+		gbc.insets = new Insets(20, 20, 20, 20);
+
+		JLabel portLabel = new JLabel("PORT : ");
+
+		gbc.gridx = 0;
+		gbc.gridy = 0;
+		container.add(portLabel, gbc);
+
+		JTextField port = new JTextField(5);
+		PlainDocument doc = (PlainDocument) port.getDocument();
+		doc.setDocumentFilter(new NumericFilter());
+		
+		gbc.gridx = 1;
+		gbc.gridy = 0;
+		container.add(port, gbc);
+		
+		settingsDialog.add(container);
+		settingsDialog.setVisible(true);
 	}
 
-	public static  void updateList(boolean showMsg) {
+	public static void updateList(boolean showMsg) {
 		container = new JPanel(new FlowLayout(FlowLayout.CENTER));
 		container.setPreferredSize(new Dimension(380, 350));
-		if(!statusLabel.getText().equals("Refreshing...")) {
+		if (!statusLabel.getText().equals("Refreshing...")) {
 			System.out.println("Updating list");
 			ClientPanel temp;
 			statusLabel.setText("Refreshing...");
@@ -215,8 +242,9 @@ public class MainFrame {
 				container.add(temp);
 			}
 			scroll.getViewport().add(container);
-			if(showMsg)
-				JOptionPane.showMessageDialog(baseFrame, "Device list has been succesfully updated.!", "Device list refresh complete.", JOptionPane.INFORMATION_MESSAGE);
+			if (showMsg)
+				JOptionPane.showMessageDialog(baseFrame, "Device list has been succesfully updated.!",
+						"Device list refresh complete.", JOptionPane.INFORMATION_MESSAGE);
 			statusLabel.setText("Refresh");
 		}
 	}
@@ -242,7 +270,7 @@ public class MainFrame {
 		log(Level.INFO, "Finish-Up initiated.!");
 		try {
 			serverThread.server.close();
-			for(Socket socket : VolatileBag.socketList.values()) {
+			for (Socket socket : VolatileBag.socketList.values()) {
 				socket.close();
 			}
 			VolatileBag.deviceList = new HashMap<String, Device>();
@@ -257,5 +285,5 @@ public class MainFrame {
 			Start.logger.log(level, message);
 		}
 	}
-	
+
 }
