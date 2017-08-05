@@ -11,7 +11,7 @@ import java.util.logging.SimpleFormatter;
 
 import javax.swing.JOptionPane;
 
-public class start {
+public class Start {
 	
 	public static Logger logger;
 	public static boolean loggingEnabled = false;
@@ -22,7 +22,7 @@ public class start {
 			VolatileBag.deviceList.put("TEST-TV", new Device("TEST-TV", 1));
 			VolatileBag.deviceList.put("TEST-WEAR", new Device("TEST-WEAR", 2));
 			VolatileBag.deviceList.put("TEST-LAPTOP", new Device("TEST-LAPTOP", 3));
-			new mainFrame();
+			new MainFrame();
 		}
 	}
 	
@@ -46,7 +46,7 @@ public class start {
 			new File("C:/ProgramData/RemoteConnectivity").mkdir();
 			try {
 				ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(data));
-				oos.writeObject(new Data(false, "LOKESH-PC", true));
+				oos.writeObject(new Data(false, "LOKESH-PC", true, 8912));
 				oos.close();
 				return true;
 			} catch (IOException e) {
@@ -65,6 +65,7 @@ public class start {
 				VolatileBag.allowRequests = temp.allowRequests;
 				VolatileBag.authenticate = temp.authenticate;
 				VolatileBag.password = temp.password;
+				VolatileBag.PORT= temp.PORT;
 				return true;
 			} catch (Exception e) {
 				log(Level.WARNING, "Init : Exception while reading data file : " + e.getMessage());

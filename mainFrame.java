@@ -13,6 +13,9 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.IOException;
+import java.net.Socket;
+import java.util.HashMap;
 import java.util.logging.Level;
 
 import javax.swing.BorderFactory;
@@ -24,18 +27,19 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.border.EtchedBorder;
 
-public class mainFrame {
-	public JFrame baseFrame;
-	JFrame settingsFrame;
-	JLabel switchLabel;
-	JLabel statusLabel;
-	JPanel container;
-	JScrollPane scroll;
-	Font heading;
-	JPanel centerPanel;
-	JPanel bottomPanel;
+public class MainFrame {
+	public static JFrame baseFrame;
+	static JFrame settingsFrame;
+	static JLabel switchLabel;
+	static JLabel statusLabel;
+	static 	JPanel container;
+	static JScrollPane scroll;
+	static Font heading;
+	static JPanel centerPanel;
+	static JPanel bottomPanel;
+	ServerThread serverThread;
 
-	public mainFrame() {
+	public MainFrame() {
 		log(Level.INFO, "mainFrame : Initiating frame");
 		baseFrame = new JFrame("Remote Connectivity - " + VolatileBag.deviceID);
 		baseFrame.setSize(400, 600);
@@ -48,7 +52,9 @@ public class mainFrame {
 				if (JOptionPane.showConfirmDialog(baseFrame, "Do you want to stop server and exit application.?",
 						"Sure to Exit?", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
 					baseFrame.dispose();
-					cleanUp();
+					if(switchLabel.getText().equals("  ON")) {
+						finishUp();
+					}
 				}
 			}
 		});
@@ -75,16 +81,12 @@ public class mainFrame {
 		gbc1.gridy = 0;
 		gbc1.anchor = GridBagConstraints.WEST;
 		serverLabel.setPreferredSize(new Dimension(175, 70));
-		// serverLabel.setBorder(BorderFactory.createEtchedBorder(EtchedBorder.RAISED,
-		// Color.black, Color.BLACK));
 		topPanel.add(serverLabel, gbc1);
 
 		gbc1.gridx = 1;
 		gbc1.gridy = 0;
 		gbc1.anchor = GridBagConstraints.EAST;
 		switchLabel.setPreferredSize(new Dimension(175, 70));
-		// switchLabel.setBorder(BorderFactory.createEtchedBorder(EtchedBorder.RAISED,
-		// Color.black, Color.BLACK));
 		topPanel.add(switchLabel, gbc1);
 
 		// <-------------------- Frame Portion 2 ---------------------->
@@ -143,7 +145,6 @@ public class mainFrame {
 		if (VolatileBag.startServer) {
 			switchLabel.setText("  ON");
 			switchLabel.setIcon(new ClientPanel().getSizedIcon("/images/on.png", 30, 30));
-			//// TODO Start server threads
 			updateList(false);
 		} else {
 			centerPanel.setVisible(false);
@@ -177,7 +178,13 @@ public class mainFrame {
 
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				System.out.println("Exit.!");
+				if (JOptionPane.showConfirmDialog(baseFrame, "Do you want to stop server and exit application.?",
+						"Sure to Exit?", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+					baseFrame.dispose();
+					if(switchLabel.getText().equals("  ON")) {
+						finishUp();
+					}
+				}
 			}
 		});
 
@@ -192,11 +199,11 @@ public class mainFrame {
 		baseFrame.setVisible(true);
 	}
 
-	protected void openSettings() {
+	private void openSettings() {
 		System.out.println("Open Settings.");
 	}
 
-	protected void updateList(boolean showMsg) {
+	public static  void updateList(boolean showMsg) {
 		container = new JPanel(new FlowLayout(FlowLayout.CENTER));
 		container.setPreferredSize(new Dimension(380, 350));
 		if(!statusLabel.getText().equals("Refreshing...")) {
@@ -220,21 +227,35 @@ public class mainFrame {
 			centerPanel.setVisible(true);
 			switchLabel.setText("  ON");
 			switchLabel.setIcon(new ClientPanel().getSizedIcon("/images/on.png", 30, 30));
+			serverThread = new ServerThread();
+			serverThread.start();
 			updateList(false);
 		} else {
 			centerPanel.setVisible(false);
 			switchLabel.setText(" OFF");
 			switchLabel.setIcon(new ClientPanel().getSizedIcon("/images/off.png", 30, 30));
+			finishUp();
 		}
 	}
 
-	public void cleanUp() {
-		System.out.println("Clean-Up initiated.!");
+	public void finishUp() {
+		log(Level.INFO, "Finish-Up initiated.!");
+		try {
+			serverThread.server.close();
+			for(Socket socket : VolatileBag.socketList.values()) {
+				socket.close();
+			}
+			VolatileBag.deviceList = new HashMap<String, Device>();
+			VolatileBag.socketList = new HashMap<String, Socket>();
+		} catch (IOException e) {
+			log(Level.SEVERE, "finishUp: Exception while clean-up process " + e.getMessage());
+		}
 	}
 
 	private void log(Level level, String message) {
-		if (start.loggingEnabled) {
-			start.logger.log(level, message);
+		if (Start.loggingEnabled) {
+			Start.logger.log(level, message);
 		}
 	}
+	
 }

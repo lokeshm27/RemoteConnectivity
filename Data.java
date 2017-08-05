@@ -8,22 +8,25 @@ public class Data implements Serializable{
 	public boolean authenticate;
 	public String password;
 	public String deviceID;
-	public boolean allowRequests = true;
+	public boolean allowRequests;
+	public int PORT;
 	
-	public Data(boolean startServer, String deviceID, boolean allowRequests) {
+	public Data(boolean startServer, String deviceID, boolean allowRequests, int PORT) {
 		this.startServer = startServer;
 		this.authenticate = false;
 		this.password = "%empty%";
 		this.deviceID = deviceID;
 		this.allowRequests = allowRequests;
+		this.PORT = PORT;
 	}
 	
-	public Data(boolean startServer, String deviceID, boolean allowRequests, String password) {
+	public Data(boolean startServer, String deviceID, boolean allowRequests, String password, int PORT) {
 		this.startServer = startServer;
 		this.authenticate = true;
 		this.password = password;
 		this.deviceID = deviceID;
 		this.allowRequests = allowRequests;
+		this.PORT = PORT;
 	}
 	
 }
