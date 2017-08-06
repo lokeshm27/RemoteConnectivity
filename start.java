@@ -46,7 +46,7 @@ public class Start {
 			new File("C:/ProgramData/RemoteConnectivity").mkdir();
 			try {
 				ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(data));
-				oos.writeObject(new Data(false, "LOKESH-PC", true, 8912));
+				oos.writeObject(new Data(false, "LOKESH-PC", true, 8912, true));
 				oos.close();
 				return true;
 			} catch (IOException e) {
@@ -66,6 +66,7 @@ public class Start {
 				VolatileBag.authenticate = temp.authenticate;
 				VolatileBag.password = temp.password;
 				VolatileBag.PORT= temp.PORT;
+				VolatileBag.alwaysConfirm = temp.alwaysConfirm;
 				return true;
 			} catch (Exception e) {
 				log(Level.WARNING, "Init : Exception while reading data file : " + e.getMessage());

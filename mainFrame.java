@@ -13,18 +13,22 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.awt.font.TextAttribute;
 import java.io.IOException;
 import java.net.Socket;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Level;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JPasswordField;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.border.EtchedBorder;
@@ -40,10 +44,11 @@ public class MainFrame {
 	static JPanel centerPanel;
 	static JPanel bottomPanel;
 	ServerThread serverThread;
+	boolean changed = false;
 
 	public MainFrame() {
 		log(Level.INFO, "mainFrame : Initiating frame");
-		baseFrame = new JFrame("Remote Connectivity - " + VolatileBag.deviceID);
+		baseFrame = new JFrame("Remote Connectivity");
 		baseFrame.setSize(400, 600);
 		baseFrame.setResizable(false);
 		baseFrame.setLocationRelativeTo(null);
@@ -51,13 +56,7 @@ public class MainFrame {
 		baseFrame.addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowClosing(WindowEvent e) {
-				if (JOptionPane.showConfirmDialog(baseFrame, "Do you want to stop server and exit application.?",
-						"Sure to Exit?", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
-					baseFrame.dispose();
-					if (switchLabel.getText().equals("  ON")) {
-						finishUp();
-					}
-				}
+				onClose();
 			}
 		});
 
@@ -180,13 +179,7 @@ public class MainFrame {
 
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				if (JOptionPane.showConfirmDialog(baseFrame, "Do you want to stop server and exit application.?",
-						"Sure to Exit?", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
-					baseFrame.dispose();
-					if (switchLabel.getText().equals("  ON")) {
-						finishUp();
-					}
-				}
+				onClose();
 			}
 		});
 
@@ -202,31 +195,236 @@ public class MainFrame {
 	}
 
 	private void openSettings() {
-		boolean changed = false;
+		log(Level.INFO, "openSettings: Settings Dialog initiating..");
 		JDialog settingsDialog = new JDialog(baseFrame, "Settings - Remote Connectivity", true);
 		settingsDialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-		settingsDialog.setSize(400, 600);
+		settingsDialog.setSize(400, 300);
 		settingsDialog.setLocationRelativeTo(baseFrame);
 
-		JPanel container = new JPanel(new GridBagLayout());
-		GridBagConstraints gbc = new GridBagConstraints();
-		gbc.insets = new Insets(20, 20, 20, 20);
+		//<--------------------- Settings Portion 1 --------------------------->
+		JPanel topPanel = new JPanel(new GridBagLayout());
+		GridBagConstraints gbc1 = new GridBagConstraints();
+		gbc1.insets = new Insets(10, 20, 10, 5);
+		gbc1.anchor = GridBagConstraints.WEST;
 
 		JLabel portLabel = new JLabel("PORT : ");
-
-		gbc.gridx = 0;
-		gbc.gridy = 0;
-		container.add(portLabel, gbc);
+		portLabel.setPreferredSize(new Dimension(125, 20));
+		portLabel.setToolTipText("Specify port number to be used for the connection");
+		gbc1.gridx = 0;
+		gbc1.gridy = 0;
+		topPanel.add(portLabel, gbc1);
 
 		JTextField port = new JTextField(5);
+		port.setText(Integer.toString(VolatileBag.PORT));
+		port.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				try {
+					int newPort = Integer.parseInt(port.getText());
+					if(newPort > 1024 && newPort!=VolatileBag.PORT) {
+						changed = true;
+					}
+				} catch (NumberFormatException e) {
+					if(!port.getText().equals("")) {
+						log(Level.SEVERE, "port Action Listner : Inlet filter allowed a non-numeric text.");
+					}
+				}
+			}
+		});
 		PlainDocument doc = (PlainDocument) port.getDocument();
 		doc.setDocumentFilter(new NumericFilter());
 		
-		gbc.gridx = 1;
-		gbc.gridy = 0;
-		container.add(port, gbc);
+		gbc1.gridx = 1;
+		gbc1.gridy = 0;
+		topPanel.add(port, gbc1);
 		
-		settingsDialog.add(container);
+		JLabel deviceLabel = new JLabel("Device ID : ");
+		deviceLabel.setPreferredSize(new Dimension(125, 20));
+		deviceLabel.setToolTipText("Device ID is used to identify this device accross the network");
+		
+		gbc1.gridx = 0;
+		gbc1.gridy = 1;
+		topPanel.add(deviceLabel, gbc1);
+		
+		
+		JTextField deviceID = new JTextField(15);
+		deviceID.setText(VolatileBag.deviceID);
+		deviceID.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if(deviceID.getText().trim().length() < 16 && !deviceID.getText().equals(VolatileBag.deviceID)) {
+					changed = true;
+				}
+			}
+		});
+		
+		gbc1.gridx = 1;
+		gbc1.gridy = 1;
+		topPanel.add(deviceID, gbc1);
+		
+		//<------------------------- Settings Portion 2 ------------------------------->
+		JPanel middlePanel = new JPanel(new BorderLayout());
+		//TODO middlePanel.setPreferredSize(new Dimension(380, 350));
+		////TODO middlePanel.setBorder(BorderFactory.createEtchedBorder(EtchedBorder.RAISED));
+		
+		//<--------------------- Settings Portion 2.1 -------------------------------->
+		JPanel authPanel = new JPanel(new GridBagLayout());
+		//authPanel.setPreferredSize(new Dimension(380, 100));
+		GridBagConstraints gbc21 = new GridBagConstraints();
+		gbc21.insets = new Insets(5, 20, 10, 5);
+		gbc21.anchor = GridBagConstraints.WEST;
+		gbc21.ipadx = 100;
+		
+		JCheckBox authenticate = new JCheckBox("Authenticate before accepting clients");
+		authenticate.setToolTipText("If enabled, Only clients with specified password will be accepted.");
+		
+		gbc21.gridx = 0;
+		gbc21.gridy = 0;
+		authPanel.add(authenticate, gbc21);
+		
+		middlePanel.add(authPanel, BorderLayout.NORTH);
+		
+		//<------------------------ Settings Portion 2.2 ------------------------------>
+		JPanel passwordPanel = new JPanel(new GridBagLayout());
+		GridBagConstraints gbc22 = new GridBagConstraints();
+		gbc22.insets = new Insets(5, 50, 10, 5);
+		gbc22.anchor = GridBagConstraints.WEST;
+				
+		JLabel passwdLabel = new JLabel("Password : ");
+		JPasswordField passwd = new JPasswordField(10);
+		passwd.setEchoChar('*');
+		passwd.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				if(passwd.getPassword().length  > 7) {
+					changed = true;
+				}
+			}
+		});
+		
+		JCheckBox showPasswd = new JCheckBox("Show password");
+		showPasswd.setSelected(false);
+		showPasswd.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if(showPasswd.isSelected()) {
+					passwd.setEchoChar((char) 0);
+				} else {
+					passwd.setEchoChar('*');
+				}
+			}
+		});
+		
+		gbc22.gridx = 0;
+		gbc22.gridy = 0;
+		passwordPanel.add(passwdLabel, gbc22);
+		
+		gbc22.gridx = 1;
+		gbc22.gridy = 0;
+		passwordPanel.add(passwd, gbc22);
+		
+		gbc22.gridx = 0;
+		gbc22.gridy = 1;
+		passwordPanel.add(showPasswd, gbc22);
+		
+		middlePanel.add(passwordPanel, BorderLayout.CENTER);
+		//<---------------------------- End Portion 2.2 --------------------------------->
+		
+		
+		if(VolatileBag.authenticate) {
+			authenticate.setSelected(true);
+			passwordPanel.setVisible(true);
+			passwd.setText(VolatileBag.password);
+		} else {
+			authenticate.setSelected(false);
+			settingsDialog.setSize(400, 310);
+			passwordPanel.setVisible(false);
+		}
+		
+		authenticate.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if(authenticate.isSelected()) {
+					settingsDialog.setSize(400, 380);
+					passwordPanel.setVisible(true);
+					if(VolatileBag.authenticate) {
+						passwd.setText(VolatileBag.password);
+					} else {
+						passwd.setText("");
+					}
+				} else {
+					settingsDialog.setSize(400, 310);
+					passwordPanel.setVisible(false);
+				}
+			}
+		});
+		
+		//<----------------------------- Settings Portion 3 ------------------------------>
+		JPanel bottomPanel = new JPanel(new GridBagLayout());
+		GridBagConstraints gbc3 = new GridBagConstraints();
+		gbc3.insets = new Insets(10, 20, 10, 5);
+		gbc3.anchor = GridBagConstraints.WEST;
+		
+		JCheckBox allowReq = new JCheckBox("Allow Requests");
+		allowReq.setToolTipText("If enabled, Clients will be able to send request to this server.");
+		allowReq.setSelected(VolatileBag.allowRequests);
+		
+		JLabel edit = new JLabel("<HTML><U style=\"color:blue\">Edit type of requests allowed</U></HTML>");
+		edit.setToolTipText("Click to allow only specified type of requests.");
+		edit.setCursor(new Cursor(Cursor.HAND_CURSOR));
+		edit.setEnabled(VolatileBag.allowRequests);
+		allowReq.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if(allowReq.isSelected()) {
+					edit.setCursor(new Cursor(Cursor.HAND_CURSOR));
+					edit.setEnabled(true);
+				} else {
+					edit.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+					edit.setEnabled(false);
+				}
+			}
+		});
+		
+		gbc3.gridx = 0;
+		gbc3.gridy = 0;
+		bottomPanel.add(allowReq, gbc3);
+		
+		gbc3.gridx = 0;
+		gbc3.gridy = 1;
+		bottomPanel.add(edit, gbc3);
+		
+		//<---------------------------------- Settings Portion 4 ------------------------------------>
+		JPanel buttonPanel = new JPanel(new GridBagLayout());
+		GridBagConstraints gbc4 = new GridBagConstraints();
+		gbc4.insets = new Insets(10, 20, 10, 20);
+		gbc4.anchor = GridBagConstraints.SOUTH;
+		
+		JButton save = new JButton("Save");
+		
+		JButton reset = new JButton("Reset to default");
+		
+		JButton cancel = new JButton("Cancel");
+		
+		gbc4.gridy = 0;
+		
+		gbc4.gridx = 0;
+		buttonPanel.add(save, gbc4);
+		
+		gbc4.gridx = 1;
+		buttonPanel.add(reset, gbc4);
+		
+		gbc4.gridx = 2;
+		buttonPanel.add(cancel, gbc4);
+		
+		settingsDialog.setLayout(new FlowLayout(FlowLayout.LEFT));
+		settingsDialog.add(topPanel);
+		settingsDialog.add(middlePanel);
+		settingsDialog.add(bottomPanel);
+		settingsDialog.add(buttonPanel);
+		
 		settingsDialog.setVisible(true);
 	}
 
@@ -262,6 +460,19 @@ public class MainFrame {
 			centerPanel.setVisible(false);
 			switchLabel.setText(" OFF");
 			switchLabel.setIcon(new ClientPanel().getSizedIcon("/images/off.png", 30, 30));
+			finishUp();
+		}
+	}
+	
+	public void onClose() {
+		if(VolatileBag.alwaysConfirm) {
+			if (JOptionPane.showConfirmDialog(baseFrame, "Do you want to stop server and exit application.?",
+					"Sure to Exit?", JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION) {
+				return;
+			}
+		}
+		baseFrame.dispose();
+		if (switchLabel.getText().equals("  ON")) {
 			finishUp();
 		}
 	}
